@@ -93,3 +93,30 @@ function Get-VMInfo
         $ReturnObj | Select-Object $ReturnProps
     }
 }
+
+
+#Requires -Module VMware.VimAutomation.Core
+#https://communities.vmware.com/thread/556784
+
+function Find-VMByOS
+{
+    param(
+        [parameter(mandatory=$false,position=0)]
+        [alias('Architecture')]
+        [string]$OSName
+    )
+
+    switch($OSName)
+    {
+        x86 {$OSName = '32-bit'}
+        x64 {$OSName = '64-bit'}
+    }
+
+    Get-VM | Where-Object {$_.ExtensionData.Config.GuestFullname -match $OSName} |
+        Select-Object `
+            @{N='VMName';E={$_.Name}},
+            @{N="ConfiguredOS";E={$_.ExtensionData.Config.GuestFullname}},
+            @{N="RunningOS";E={$_.Guest.OsFullName}},
+            @{N="PoweredOn";E={ $_.PowerState -eq "PoweredOn"}},
+            @{N="disktype";E={(Get-Harddisk $_).Storageformat}}
+}
