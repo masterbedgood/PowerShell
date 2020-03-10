@@ -175,11 +175,11 @@ function Update-VMHardware
             }
         catch{
             #If Set-VM failed, warns running user
-            Write-Warning "Updated memory allocation failed - MemoryHotPlug may be disabled on VM."
+            Write-Warning "Updated memory allocation failed - MemoryHotPlug may be disabled on VM ($VMName)."
 
             #Prompts to shut down VM & retry changes
             do{
-                switch((Read-Host -Prompt "Would you like to shut down VM to make changes?" ).Substring(0,1))
+                switch((Read-Host -Prompt "Would you like to shut down VM ($VMName) to make changes?" ).Substring(0,1))
                 {
                     #Shuts down VM & retries setting Memory allocation
                     y {
@@ -187,7 +187,14 @@ function Update-VMHardware
                         Write-Host "Shutting down VM guest $VMName"
                         Get-VM $VMName | Shutdown-VMGuest -Confirm:$Confirm -WhatIf:$WhatIf
 
+                        #Pauses script until the VM has successfully entered a 'PoweredOff' state
+                        do{
+                            Write-Host "Waiting for VM ($VMName) to power down fully..."
+                            timeout -t 2 > $null
+                        }until((Get-VM).PowerState -eq 'PoweredOff')
+
                         try{
+                                Write-Host "Updating VM memory allocation..."
                                 Get-VM $VMName | 
                                     Set-VM -MemoryGB $RAM -Confirm:$Confirm -WhatIf:$WhatIf -ErrorAction Stop
                             }
@@ -198,9 +205,18 @@ function Update-VMHardware
                                 -ForegroundColor Yellow
                         }
 
+                        #Brief timeout to ensure Set-VM completes successfully before moving on
+                        timeout -t 3 > $null
+
                         #Restarts VM
                         Write-Host "Restarting VM guest $VMName"
-                        Get-VM $VMName
+                        Get-VM $VMName | Start-VM -Confirm:$Confirm -WhatIf:$WhatIf
+
+                        #Pauses script until the VM has successfully entered a 'PoweredOn' state
+                        do{
+                            Write-Host "Waiting for VM ($VMName) to power on..."
+                            timeout -t 2 > $null
+                        }until((Get-VM).PowerState -eq 'PoweredOn')
                     }
                     #Makes no changes & notifies running user manual maintenance will be needed
                     n {
