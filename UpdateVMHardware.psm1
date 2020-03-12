@@ -1,4 +1,5 @@
 #Requires -Module VMware.VimAutomation.Core
+#http://vcloud-lab.com/entries/powercli/using-powercli-to-increase-vmdk-virtual-disk--in-vmware-virtual-machine
 function Update-VMHardware
 {
     [alias('Update-VMSpecs')]
