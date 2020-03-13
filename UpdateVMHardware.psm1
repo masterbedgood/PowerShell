@@ -38,7 +38,7 @@ function Update-VMHardware
         $Snapshot | Select-Object VM, Name, Created | Out-Host
 
         do{
-            switch((Read-Host -Prompt "Remove all snapshots for $VMName? (Y / N)").Substring(0,1))
+            switch((Read-Host -Prompt "Remove all snapshots for $($VMName)? (Y / N)").Substring(0,1))
             {
                 y {
                     $ValidResponse = $true
