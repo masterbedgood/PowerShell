@@ -27,6 +27,38 @@ function Update-VMHardware
         [switch]$WhatIf
     )
 
+    #################
+    ### SNAPSHOTS ###
+    #################
+
+    $Snapshot = Get-VM $VMName | Get-Snapshot
+    if($Snapshot)
+    {
+        Write-Host "Snapshot(s) for the VM ($VMName) have been found:"
+        $Snapshot | Select-Object VM, Name, Created | Out-Host
+
+        do{
+            switch((Read-Host -Prompt "Remove all snapshots for $VMName? (Y / N)").Substring(0,1))
+            {
+                y {
+                    $ValidResponse = $true
+                    $Snapshot | Remove-Snapshot -Confirm:$Confirm -WhatIf:$WhatIf
+                }
+                n {
+                    $ValidResponse = $true
+                    Write-Host "`nNo changes will be made to existing snapshots.`n"
+                    Write-Warning "Changes to VM guest ($VMName) may fail due to existing snapshots."
+                }
+
+                default{
+                    $ValidResponse = $false
+                    Write-Warning "Invalid entry, please try again."
+                }
+            }
+        }until($ValidResponse)
+    }
+
+
     ###############
     ### STORAGE ###
     ###############
