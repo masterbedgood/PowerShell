@@ -1,6 +1,17 @@
 <#
 .SYNOPSIS
 Replaces specified header(s) with corresponding NewHeader values in provided InputCSV
+
+.DESCRIPTION
+Replaces the specified header(s) in a csv pscustom object with the provided new header values.
+Header values must be provided in the same order as the headers being replaced.
+The number of values provided for OldHeader and NewHeader must be equal.
+
+.EXAMPLE
+$TestCsv = Import-Csv C:\Temp\Test.csv
+Update-CsvHeader -OldHeader 'Test1','Test2' -NewHeader 'NewHeader1','NewHeader2' -InputCsv $TestCsv
+
+Updates header 'Test1' to 'NewHeader1' and 'Test2' to 'NewHeader2' in TestCsv - returns updated object
 #>
 function Update-CSVHeader
 {
