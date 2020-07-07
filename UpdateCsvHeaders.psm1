@@ -35,7 +35,10 @@ function Update-CSVHeader
     ###############################
     ### GET CURRENT CSV HEADERS ###
     ###############################
-    $CSVHeaders = ($InputCSV | Get-Member -MemberType NoteProperty).Name
+    #$CSVHeaders = ($InputCSV | Get-Member -MemberType NoteProperty).Name
+    #Replaced GM w/PSObject.Properties.Name to preserve header order:  
+    #   https://stackoverflow.com/a/27361641/13853660
+    $CSVHeaders = $InputCSV[0].PSObject.Properties.Name
 
     ################################
     ### REPLACE HEADERS BY INDEX ###
@@ -46,9 +49,12 @@ function Update-CSVHeader
     {
         #Updates the Headers arrays
         $SelectionHeaders = $CSVHeaders | Where-Object {$_ -ne $OldHeader[$i]}
-        $CSVHeaders = $SelectionHeaders + $NewHeader[$i]
+        #Replaces old header w/new header - allows for preserving header order in updated return object
+        $CSVHeaders = $CSVHeaders -replace $OldHeader[$i],$NewHeader[$i]
 
-        $InputCSV = $InputCSV | Select-Object @($SelectionHeaders + @{Name=$NewHeader[$i]; Expression={$_."$($OldHeader[$i])"}})
+        $InputCSV = $InputCSV | 
+            Select-Object @($SelectionHeaders + @{Name=$NewHeader[$i]; Expression={$_."$($OldHeader[$i])"}}) | 
+            Select-Object $CSVHeaders
     }
 
     $InputCSV
