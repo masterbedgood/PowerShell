@@ -10,12 +10,15 @@ Function New-RandomPassword
         [int]$Length = 10
     )
 
-    Add-Type -AssemblyName System.Web
-    $CharSet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-*@)$^%(_!/|.'.ToCharArray()
     # Special character set for complexity requirements
-    $SpecialChars = '-*@)$^%(_!/|.'.ToCharArray()
+    $SpecialCharString = '-*@)$^%(_!/|.'
+    $SpecialChars = $SpecialCharString.ToCharArray()
     # Number character set for complexity requirements
-    $Numbers = '0123456789'.ToCharArray()
+    $NumberString = '0123456789'
+    $Numbers = $NumberString.ToCharArray()
+
+    Add-Type -AssemblyName System.Web
+    $CharSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$($NumberString)$($SpecialCharString)".ToCharArray()
     #Removed some special characters to resolve conflict in setting AD password without specifying an escape character
     #$CharSet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789{]+-[*=@:)}$^%;(_!&#?>/|.'.ToCharArray()
     #Index1s 012345678901234567890123456789012345678901234567890123456789012345678901234567890123456
