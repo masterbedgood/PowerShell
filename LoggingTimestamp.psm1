@@ -7,7 +7,7 @@ function Get-Timestamp
     [alias('Write-Timestamp','timestamp','logtime','log')]
     param(
         [validateset('start','start log','end','end log','information',
-            'change','warning','notice','error',"error`t")]
+            'change','warning','notice','error',"error`t",'whatif')]
         [string]$logType = 'information',
         [string]$message
     )
@@ -34,7 +34,7 @@ function Get-Timestamp
     # For all other log types, defines the string prefix & output colors
     else{        
         # Log timestamp prefixes use different number of tabs to keep text rows aligned properly
-        if($logType -match '^error' -or $logType -eq 'change' -or $logType -eq 'notice')
+        if($logType -match '^error|^change$|^notice$|^whatif$')
         {$tagString = "`t$($logType.ToUpper() -replace '\s+'):`t`t"}
         else{$tagString = "`t$($logType.ToUpper()):`t"}
 
