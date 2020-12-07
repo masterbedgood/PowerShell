@@ -59,6 +59,10 @@ function Get-Timestamp
         }
     }
 
+    # If format message function loaded in current session, updates the output message w/properly formatted log entry
+    if([bool](Get-Command Format-LogMessage -ErrorAction Ignore))
+    {$outString = Format-LogMessage $outString}
+
     # Defines the hash table for Write-Host cmd splatting
     $writeHostHash = @{
         Object          = $outString
@@ -67,4 +71,65 @@ function Get-Timestamp
     }
     # Writes timestamp message to console w/values defined in writeHostHash hashtable
     Write-Host @writeHostHash
+}
+
+<#
+.SYNOPSIS
+Replaces tabs with 8 spaces & measures total string length.  If updated string length exceeds 
+#>
+function Format-LogMessage
+{
+    # Splits at console width & resumes string on subsequent lines tabbed in appropriate distance
+    param(
+        [string]$messageString,
+        [int]$tabSpaces = 8,
+        [int]$numTabs = 4
+    )
+
+    [int]$consoleWidth = [System.Console]::WindowWidth
+
+    [string]$tabString = $null
+    for($i=0; $i -lt $numTabs; $i++)
+    {$tabString += "`t"}
+
+    [string]$spaceString = $null
+    for($i=0; $i -lt ($numTabs*$tabSpaces); $i++)
+    {$spaceString+= ' '}
+
+    [string]$singleTab = $null
+    for($i=0; $i -lt ($tabSpaces); $i++)
+    {$singleTab += ' '}
+
+    [string]$revisedString = $messageString -replace '\n\s+',' ' -replace '\n',' ' -replace '\t',$singleTab
+    
+    $matchString = "\.[^\s+\t'`"]"
+    if($revisedString -match $matchString)
+    {
+        [string[]]$matchArrays = $null
+        $matchArrays = $revisedString -split "($matchString)" | Select-String $matchString |
+            ForEach-Object {$_.ToString()}
+
+        foreach($match in $matchArrays)
+        {$revisedString = $revisedString -replace "\$match",". $($match.Substring(1,1))"}
+    }
+
+    if($revisedString.Length -gt $ConsoleWidth)
+    {
+        do{
+            [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
+
+            [string[]]$tempArray = ($lastLine -replace "^$tabString","$spaceString").Substring(0, $consoleWidth) -split "(\s+)"
+            [int]$tempArrayCount = ($tempArray | Measure-Object).Count
+            [string]$tempString = [string]::Join('', ($tempArray | Select-Object -First ($tempArrayCount - 1))) -replace "^$spaceString","$tabString"
+
+            $revisedString = (($revisedString -split "\n") -replace "^$tempString","$tempString`n`t`t`t`t" | Out-String) -replace '\s+$'
+
+            [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
+            [int]$lastLineLength = ($lastLine -replace "^$tabString","$spaceString").Length
+        }until($lastLineLength -le $consoleWidth)
+
+        $revisedString = $revisedString -replace $singleTab,"`t"
+        $revisedString
+    }
+    else{$messageString}
 }
