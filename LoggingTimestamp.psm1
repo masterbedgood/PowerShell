@@ -87,6 +87,7 @@ function Format-LogMessage
     )
 
     [int]$consoleWidth = [System.Console]::WindowWidth
+    [bool]$returnRevisedString = $false
 
     [string]$tabString = $null
     for($i=0; $i -lt $numTabs; $i++)
@@ -100,34 +101,59 @@ function Format-LogMessage
     for($i=0; $i -lt ($tabSpaces); $i++)
     {$singleTab += ' '}
 
-    [string]$revisedString = $messageString -replace '\n\s+',' ' -replace '\n',' ' -replace '\t',$singleTab
-    
-    $matchString = "\.[^\s+\t'`"]"
-    if($revisedString -match $matchString)
+    # If the input string has a newline that starts with a tab, attempts to preserve input formatting
+    if($messageString -match '\n\t')
     {
-        [string[]]$matchArrays = $null
-        $matchArrays = $revisedString -split "($matchString)" | Select-String $matchString |
-            ForEach-Object {$_.ToString()}
+        [string]$revisedString = $null
+        [string[]]$tempArray = $messageString -split '\n\t'
+        
+        for($i = 0; $i -lt ($tempArray | Measure-Object).count; $i++)
+        {
+            if($i -eq 0){$revisedString += $tempArray[$i]}
+            else{$revisedString += "`n$spaceString$($tempArray[$i])"}
+        }
 
-        foreach($match in $matchArrays)
-        {$revisedString = $revisedString -replace "\$match",". $($match.Substring(1,1))"}
+        $returnRevisedString = $true
     }
 
-    if($revisedString.Length -gt $ConsoleWidth)
+    # Will attempt to parse & format input string if not matching newline tab
+    else{
+        [string]$revisedString = $messageString -replace '\n\t',"`t" -replace '\n\s+',' ' `
+            -replace '\n',' ' -replace '\t',$singleTab
+        
+        $matchString = "\.[^\s+\t'`"]"
+        if($revisedString -match $matchString)
+        {
+            [string[]]$matchArrays = $null
+            $matchArrays = $revisedString -split "($matchString)" | Select-String $matchString |
+                ForEach-Object {$_.ToString()}
+
+            foreach($match in $matchArrays)
+            {$revisedString = $revisedString -replace "\$match",". $($match.Substring(1,1))"}
+        }
+
+        if($revisedString.Length -gt $ConsoleWidth)
+        {
+            do{
+                [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
+
+                [string[]]$tempArray = ($lastLine -replace "^$tabString","$spaceString").Substring(0, $consoleWidth) -split "(\s+)"
+                [int]$tempArrayCount = ($tempArray | Measure-Object).Count
+                [string]$tempString = [string]::Join('', ($tempArray | Select-Object -First ($tempArrayCount - 1))) -replace "^$spaceString","$tabString"
+
+                $revisedString = (($revisedString -split "\n") `
+                    -replace "^$($tempString -replace '\\','\\')","$tempString`n`t`t`t`t" | Out-String) -replace '\s+$'
+
+                [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
+                [int]$lastLineLength = ($lastLine -replace "^$tabString","$spaceString").Length
+            }until($lastLineLength -le $consoleWidth)
+
+            $returnRevisedString = $true
+        }
+    }
+
+    if($returnRevisedString)
     {
-        do{
-            [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
-
-            [string[]]$tempArray = ($lastLine -replace "^$tabString","$spaceString").Substring(0, $consoleWidth) -split "(\s+)"
-            [int]$tempArrayCount = ($tempArray | Measure-Object).Count
-            [string]$tempString = [string]::Join('', ($tempArray | Select-Object -First ($tempArrayCount - 1))) -replace "^$spaceString","$tabString"
-
-            $revisedString = (($revisedString -split "\n") -replace "^$tempString","$tempString`n`t`t`t`t" | Out-String) -replace '\s+$'
-
-            [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
-            [int]$lastLineLength = ($lastLine -replace "^$tabString","$spaceString").Length
-        }until($lastLineLength -le $consoleWidth)
-
         $revisedString = $revisedString -replace $singleTab,"`t"
         $revisedString
     }
