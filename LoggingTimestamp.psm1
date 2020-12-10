@@ -172,4 +172,16 @@ function Format-LogMessage
 # https://poshoholic.com/2009/01/19/powershell-quick-tip-how-to-retrieve-the-current-line-number-and-file-name-in-your-powershell-script/
 function Get-CurrentLineNumber {$MyInvocation.ScriptLineNumber}
 # New-Alias -Name __LINE__ -Value Get-CurrentLineNumber –Description ‘Returns the current line number in a PowerShell script file.‘
-function Get-CurrentFileName {$MyInvocation.ScriptName}
+
+function Get-CurrentFileName {
+    param(
+        [alias('fp','full')]
+        [switch]$FullPath
+    )
+    [string]$ScriptName = $MyInvocation.ScriptName
+    if($FullPath -and $ScriptName){$ScriptName}
+    else{
+        try{Split-Path $ScriptName -Leaf}
+        catch{$null}
+    }
+}
