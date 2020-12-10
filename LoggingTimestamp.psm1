@@ -6,7 +6,7 @@ function Get-Timestamp
 {
     [alias('Write-Timestamp','timestamp','logtime','log')]
     param(
-        [validateset('start','start log','end','end log','information',
+        [validateset('start','start log','end','end log','information', 'success',
             'change','warning','notice','error',"error`t",'whatif')]
         [string]$logType = 'information',
         [string]$message
@@ -45,6 +45,7 @@ function Get-Timestamp
             'change'                {$outColor  = 'Cyan'}
             'warning'               {$outColor  = 'Yellow'}
             'notice'                {$outColor  = 'Yellow'}
+            'success'               {$outColor  = 'Green'}
             {$_ -match '^error'}    {$outColor  = 'Red'}
 
             default         {$outColor = 'White'}
@@ -72,6 +73,7 @@ function Get-Timestamp
     # Writes timestamp message to console w/values defined in writeHostHash hashtable
     Write-Host @writeHostHash
 }
+
 
 <#
 .SYNOPSIS
@@ -139,14 +141,20 @@ function Format-LogMessage
 
                 [string[]]$tempArray = ($lastLine -replace "^$tabString","$spaceString").Substring(0, $consoleWidth) -split "(\s+)"
                 [int]$tempArrayCount = ($tempArray | Measure-Object).Count
-                [string]$tempString = [string]::Join('', ($tempArray | Select-Object -First ($tempArrayCount - 1))) -replace "^$spaceString","$tabString"
+                if($tempArrayCount -gt 1)
+                {
+                    [string]$tempString =   [string]::Join('', ($tempArray | 
+                                                Select-Object -First ($tempArrayCount - 1))) `
+                                                    -replace "^$spaceString","$tabString"
+                }
+                else{[string]$tempString =   $tempArray[0]}
 
                 $revisedString = (($revisedString -split "\n") `
                     -replace "^$($tempString -replace '\\','\\')","$tempString`n`t`t`t`t" | Out-String) -replace '\s+$'
 
                 [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
                 [int]$lastLineLength = ($lastLine -replace "^$tabString","$spaceString").Length
-            }until($lastLineLength -le $consoleWidth)
+            }until(($lastLineLength -le $consoleWidth) -or (($lastLine -replace '^\s+') -notmatch '\s+'))
 
             $returnRevisedString = $true
         }
@@ -159,6 +167,7 @@ function Format-LogMessage
     }
     else{$messageString}
 }
+
 
 # https://poshoholic.com/2009/01/19/powershell-quick-tip-how-to-retrieve-the-current-line-number-and-file-name-in-your-powershell-script/
 function Get-CurrentLineNumber {$MyInvocation.ScriptLineNumber}
