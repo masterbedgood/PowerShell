@@ -128,7 +128,7 @@ function Format-LogMessage
         {
             [string[]]$matchArrays = $null
             $matchArrays = $revisedString -split "($matchString)" | Select-String $matchString |
-                ForEach-Object {$_.ToString()}
+                Where-Object {$messageString -notmatch "\$($_)"}| ForEach-Object {$_.ToString()}
 
             foreach($match in $matchArrays)
             {$revisedString = $revisedString -replace "\$match",". $($match.Substring(1,1))"}
