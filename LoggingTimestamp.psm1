@@ -154,6 +154,7 @@ function Format-LogMessage
 
                 [string]$lastLine = ($revisedString -split "\n" | Select-Object -Last 1)
                 [int]$lastLineLength = ($lastLine -replace "^$tabString","$spaceString").Length
+                $lastLine -split '\s+' | ForEach-Object{if($_.length -gt $consoleWidth){break}}
             }until(($lastLineLength -le $consoleWidth) -or (($lastLine -replace '^\s+') -notmatch '\s+'))
 
             $returnRevisedString = $true
