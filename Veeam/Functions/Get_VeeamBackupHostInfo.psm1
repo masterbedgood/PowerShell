@@ -6,6 +6,9 @@ function Get-VeeamBackupHostInfo
     $vbrLicensedHosts = (Get-VBRInstalledLicense).SocketLicenseSummary.Workload.Name |
         Sort-Object -Descending
 
+    # Collects all protection groups
+    $vbrProtectionGroups = (Get-VBRProtectionGroup)
+
     # Creates an empty object for appending results
     $collectedRestorePoints = @()
 
@@ -24,7 +27,33 @@ function Get-VeeamBackupHostInfo
                     else{throw 'Veeam Agent Backup'}
                 }
                 catch{
-                    try{Get-VBRRestorePoint -Name ($backupJob | Get-VBRJobObject).Name | Group-Object VMName}
+                    try{
+                        # Resets vars on each loop
+                        $loopBackupJobObjects = $null
+                        [string[]]$loopObjectNames = $null
+
+                        # Grabs all job objects under the current loop backup job & loops through each returned result
+                        $loopBackupJobObjects = (Get-VBRJobObject -Job $backupJob.Name)
+                        foreach($loopJobObject in $loopBackupJobObjects)
+                        {
+                            # If Location value found under protection group names, attempts to parse protection group members
+                            if($vbrProtectionGroups.Name -contains $loopJobObject.Location)
+                            {
+                                # Resets group ID on each loop - matches protection group w/job object location & selects only ID
+                                $loopProtectionGroup = $null
+                                $loopProtectionGroup = ($vbrProtectionGroups | 
+                                    Where-Object {$_.Name -eq $loopJobObject.Location}).ID
+                                
+                                # Grabs all discovered computers w/protection group matching the Location group's ID
+                                $loopObjectNames += (Get-VBRDiscoveredComputer -ProtectionGroup $loopProtectionGroup).Name
+                            }
+                            # If loop object NOT match protection group, assumes it's a single machine
+                            else{$loopObjectNames += $loopJobObject.Name}
+                        }
+
+                        # Attempts to grab restore points for all job objects & protection group children (where applicable)
+                        Get-VBRRestorePoint -Name $loopObjectNames | Group-Object VMName
+                    }
                     catch{
                         $collectedRestorePoints += New-Object PSObject -Property @{
                             BackupJob = $backupJob.Name
