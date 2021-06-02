@@ -56,7 +56,7 @@ function Get-VeeamBackupHostInfo
                 IsConsistent = $tempRestorePoint.IsConsistent
                 HasIndex = $tempRestorePoint.HasIndex
                 HostIsLicensed = (&{
-                                    if($tempRestorePoint.VMHost)
+                                    if($tempRestorePoint.AuxData.EsxName)
                                     {$vbrLicensedHosts -contains $tempRestorePoint.AuxData.EsxName}
                                     else{$null}
                                 })
